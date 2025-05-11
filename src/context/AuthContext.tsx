@@ -1,8 +1,10 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from "@supabase/supabase-js";
 
-interface User {
+interface AuthUser {
   id: string;
   email: string;
   name?: string;
@@ -10,60 +12,85 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is stored in localStorage (simulating persistence)
-    const storedUser = localStorage.getItem("cryptoUser");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse stored user", error);
-        localStorage.removeItem("cryptoUser");
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          const authUser: AuthUser = {
+            id: session.user.id,
+            email: session.user.email || "",
+            name: session.user.user_metadata.name,
+            subscriptionTier: "free"
+          };
+          setUser(authUser);
+          setSupabaseUser(session.user);
+        } else {
+          setUser(null);
+          setSupabaseUser(null);
+        }
       }
-    }
-    setIsLoading(false);
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const authUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || "",
+          name: session.user.user_metadata.name,
+          subscriptionTier: "free"
+        };
+        setUser(authUser);
+        setSupabaseUser(session.user);
+      }
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      // This is a mock implementation - would connect to backend in production
       setIsLoading(true);
       
       // Simple validation
       if (!email || !password) {
-        throw new Error("Email and password are required");
+        throw new Error("Email e senha são obrigatórios");
       }
       
-      // Mock login (replace with actual API call)
-      if (email === "demo@example.com" && password === "password") {
-        const mockUser: User = {
-          id: "user-123",
-          email,
-          name: "Demo User",
-          subscriptionTier: "free"
-        };
-        setUser(mockUser);
-        localStorage.setItem("cryptoUser", JSON.stringify(mockUser));
-        toast.success("Login successful");
-      } else {
-        throw new Error("Invalid credentials");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
       }
+      
+      toast.success("Login realizado com sucesso");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Login failed");
+      toast.error(error instanceof Error ? error.message : "Falha ao fazer login");
       throw error;
     } finally {
       setIsLoading(false);
@@ -76,32 +103,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Simple validation
       if (!email || !password || !name) {
-        throw new Error("All fields are required");
+        throw new Error("Todos os campos são obrigatórios");
       }
       
-      // Mock signup (replace with actual API call)
-      const mockUser: User = {
-        id: `user-${Date.now()}`,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        name,
-        subscriptionTier: "free"
-      };
+        password,
+        options: {
+          data: {
+            name,
+          }
+        }
+      });
       
-      setUser(mockUser);
-      localStorage.setItem("cryptoUser", JSON.stringify(mockUser));
-      toast.success("Account created successfully");
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Conta criada com sucesso");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Signup failed");
+      toast.error(error instanceof Error ? error.message : "Falha ao criar conta");
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("cryptoUser");
-    toast.info("You have been logged out");
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      toast.info("Você foi desconectado");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao desconectar");
+      console.error("Erro ao desconectar:", error);
+    }
   };
 
   return (

@@ -35,16 +35,30 @@ const AuthModal = ({ isOpen, onClose, mode, setMode }: AuthModalProps) => {
         onClose();
       } else {
         await signup(email, password, name);
-        onClose();
+        // In signup, we don't automatically close the modal in case email confirmation is required
+        // The user will see the toast message indicating next steps
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Um erro ocorreu");
+    } catch (err: any) {
+      // Handle Supabase specific errors
+      if (err?.message?.includes("Email not confirmed")) {
+        setError("Por favor, confirme seu email antes de fazer login");
+      } else if (err?.message?.includes("Invalid login credentials")) {
+        setError("Email ou senha inválidos");
+      } else if (err?.message?.includes("User already registered")) {
+        setError("Este email já está registrado. Faça login em vez disso.");
+        setMode("login");
+      } else {
+        setError(err instanceof Error ? err.message : "Um erro ocorreu");
+      }
     }
   };
 
   const toggleMode = () => {
     setMode(mode === "login" ? "signup" : "login");
     setError("");
+    setEmail("");
+    setPassword("");
+    setName("");
   };
 
   return (
