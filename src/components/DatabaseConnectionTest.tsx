@@ -14,7 +14,7 @@ const DatabaseConnectionTest = () => {
       try {
         setIsLoading(true);
         // Call the test_connection RPC function
-        const { data, error } = await supabase.rpc("test_connection");
+        const { data, error } = await supabase.rpc("get_postgresql_version");
 
         if (error) {
           console.error("Database connection error:", error);
