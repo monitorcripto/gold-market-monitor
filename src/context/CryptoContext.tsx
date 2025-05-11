@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
 
@@ -164,11 +163,11 @@ export const CryptoProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     // Create mock market cap and volume data based on price
-    const mockMarketCaps = mockPrices.map(([time, price]) => 
+    const mockMarketCaps: [number, number][] = mockPrices.map(([time, price]) => 
       [time, price * (selectedCrypto?.id === 'bitcoin' ? 19000000 : 120000000)]
     );
     
-    const mockVolumes = mockPrices.map(([time]) => 
+    const mockVolumes: [number, number][] = mockPrices.map(([time]) => 
       [time, Math.random() * 10000000000 + 5000000000]
     );
     
