@@ -129,11 +129,16 @@ const FearGreedIndex = () => {
       </div>
       
       <div className="relative pt-6 pb-12">
-        <Progress 
-          value={fearGreedData.value} 
-          className="h-4" 
-          indicatorClassName={getColorByValue(fearGreedData.value)}
-        />
+        <div className="relative">
+          <Progress 
+            value={fearGreedData.value} 
+            className="h-4"
+          />
+          <div 
+            className={`absolute top-0 left-0 h-4 rounded-full transition-all ${getColorByValue(fearGreedData.value)}`}
+            style={{ width: `${fearGreedData.value}%` }}
+          />
+        </div>
         
         <div className="flex justify-between text-xs mt-1 text-muted-foreground">
           <div className="text-red-600 font-medium">Medo Extremo</div>
