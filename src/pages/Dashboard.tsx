@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -10,6 +9,12 @@ import CryptoCard from "@/components/CryptoCard";
 import CryptoChart from "@/components/CryptoChart";
 import TrendIndicator from "@/components/TrendIndicator";
 import AlertBanner from "@/components/AlertBanner";
+import FearGreedIndex from "@/components/FearGreedIndex";
+import TechnicalIndicators from "@/components/TechnicalIndicators";
+import TradingSignals from "@/components/TradingSignals";
+import RiskAnalysis from "@/components/RiskAnalysis";
+import SmartAlerts from "@/components/SmartAlerts";
+import DecisionDashboard from "@/components/DecisionDashboard";
 import { CryptoProvider, useCrypto } from "@/context/CryptoContext";
 import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -47,9 +52,9 @@ const DashboardContent = () => {
       <main className="container px-4 py-8 flex-grow max-w-7xl">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Mercado de Criptomoedas</h1>
+            <h1 className="text-3xl font-bold">Centro de Análise Cripto</h1>
             <p className="text-muted-foreground">
-              Monitore preços, tendências e indicadores em tempo real
+              Análise completa com indicadores técnicos, sinais de trading e gestão de risco
             </p>
           </div>
           <Button 
@@ -86,94 +91,143 @@ const DashboardContent = () => {
             )}
           </div>
         </section>
-        
-        {/* Main chart section */}
+
+        {/* Analysis Tabs */}
         <section className="mt-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <CryptoChart />
-            
-            {/* Market stats panel */}
-            <Card className="h-fit">
-              <CardHeader>
-                <CardTitle>Dados de Mercado</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading || !selectedCrypto ? (
-                  <div className="space-y-3">
-                    {Array(6).fill(0).map((_, i) => (
-                      <Skeleton key={i} className="h-6" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <MarketStat 
-                      label="Preço Atual" 
-                      value={formatCurrency(selectedCrypto.current_price)} 
-                    />
-                    <MarketStat 
-                      label="Capitalização de Mercado" 
-                      value={formatCurrency(selectedCrypto.market_cap)} 
-                    />
-                    <MarketStat 
-                      label="Ranking" 
-                      value={`#${selectedCrypto.market_cap_rank}`} 
-                    />
-                    <MarketStat 
-                      label="Volume 24h" 
-                      value={formatCurrency(selectedCrypto.total_volume)} 
-                    />
-                    <MarketStat 
-                      label="Máxima 24h" 
-                      value={formatCurrency(selectedCrypto.high_24h)} 
-                    />
-                    <MarketStat 
-                      label="Mínima 24h" 
-                      value={formatCurrency(selectedCrypto.low_24h)} 
-                    />
-                    <Separator className="my-2" />
-                    <MarketStat 
-                      label="Variação 24h" 
-                      value={
-                        <TrendIndicator 
-                          value={selectedCrypto.price_change_percentage_24h} 
-                          asPercentage 
-                          showIcon 
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="technical">Técnica</TabsTrigger>
+              <TabsTrigger value="signals">Sinais</TabsTrigger>
+              <TabsTrigger value="risk">Risco</TabsTrigger>
+              <TabsTrigger value="alerts">Alertas</TabsTrigger>
+              <TabsTrigger value="decision">Decisão</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Chart and Basic Stats */}
+                <div className="space-y-6">
+                  <CryptoChart />
+                  <FearGreedIndex />
+                </div>
+                
+                {/* Market stats panel */}
+                <Card className="h-fit">
+                  <CardHeader>
+                    <CardTitle>Dados de Mercado</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading || !selectedCrypto ? (
+                      <div className="space-y-3">
+                        {Array(6).fill(0).map((_, i) => (
+                          <Skeleton key={i} className="h-6" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <MarketStat 
+                          label="Preço Atual" 
+                          value={formatCurrency(selectedCrypto.current_price)} 
                         />
-                      } 
-                    />
-                    <MarketStat 
-                      label="Análise de Tendência" 
-                      value={
-                        <TrendBadge 
-                          value={selectedCrypto.price_change_percentage_24h > 0 ? "bullish" : "bearish"} 
+                        <MarketStat 
+                          label="Capitalização de Mercado" 
+                          value={formatCurrency(selectedCrypto.market_cap)} 
                         />
-                      } 
-                    />
-                    <MarketStat 
-                      label="RSI (simulado)" 
-                      value={
-                        <TechnicalIndicator 
-                          name="RSI" 
-                          value={simulateRSI(selectedCrypto.price_change_percentage_24h)} 
-                          type="momentum" 
+                        <MarketStat 
+                          label="Ranking" 
+                          value={`#${selectedCrypto.market_cap_rank}`} 
                         />
-                      } 
-                    />
-                    <MarketStat 
-                      label="MACD (simulado)" 
-                      value={
-                        <TechnicalIndicator 
-                          name="MACD" 
-                          value={simulateMacd(selectedCrypto.price_change_percentage_24h)} 
-                          type={selectedCrypto.price_change_percentage_24h > 0 ? "bullish" : "bearish"} 
+                        <MarketStat 
+                          label="Volume 24h" 
+                          value={formatCurrency(selectedCrypto.total_volume)} 
                         />
-                      } 
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                        <MarketStat 
+                          label="Máxima 24h" 
+                          value={formatCurrency(selectedCrypto.high_24h)} 
+                        />
+                        <MarketStat 
+                          label="Mínima 24h" 
+                          value={formatCurrency(selectedCrypto.low_24h)} 
+                        />
+                        <Separator className="my-2" />
+                        <MarketStat 
+                          label="Variação 24h" 
+                          value={
+                            <TrendIndicator 
+                              value={selectedCrypto.price_change_percentage_24h} 
+                              asPercentage 
+                              showIcon 
+                            />
+                          } 
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="technical" className="space-y-6">
+              {selectedCrypto ? (
+                <TechnicalIndicators crypto={selectedCrypto} />
+              ) : (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <p className="text-muted-foreground">Selecione uma criptomoeda para ver os indicadores técnicos</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="signals" className="space-y-6">
+              {selectedCrypto ? (
+                <TradingSignals crypto={selectedCrypto} />
+              ) : (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <p className="text-muted-foreground">Selecione uma criptomoeda para ver os sinais de trading</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="risk" className="space-y-6">
+              {selectedCrypto ? (
+                <RiskAnalysis crypto={selectedCrypto} />
+              ) : (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <p className="text-muted-foreground">Selecione uma criptomoeda para ver a análise de risco</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="alerts" className="space-y-6">
+              {selectedCrypto ? (
+                <SmartAlerts crypto={selectedCrypto} />
+              ) : (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <p className="text-muted-foreground">Selecione uma criptomoeda para configurar alertas</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="decision" className="space-y-6">
+              {selectedCrypto ? (
+                <DecisionDashboard crypto={selectedCrypto} />
+              ) : (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <p className="text-muted-foreground">Selecione uma criptomoeda para ver o dashboard de decisão</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
         </section>
         
         {/* All cryptocurrencies section */}
