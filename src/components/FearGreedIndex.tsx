@@ -4,7 +4,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 
-// Type definition for Fear & Greed data
+// Type definition for Fear & Greed data from API
+interface FearGreedApiResponse {
+  name: string;
+  data: Array<{
+    value: string;
+    value_classification: string;
+    timestamp: string;
+    time_until_update: string;
+  }>;
+  metadata: {
+    error: string | null;
+  };
+}
+
 interface FearGreedData {
   value: number;
   value_classification: string;
@@ -16,50 +29,87 @@ const FearGreedIndex = () => {
   const [fearGreedData, setFearGreedData] = useState<FearGreedData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   
-  useEffect(() => {
-    // In a real application, you would fetch from a real API
-    // For now, we'll simulate a Fear & Greed index
-    const fetchFearGreedIndex = async () => {
-      try {
-        setLoading(true);
-        
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Create a random value between 0 and 100
-        const randomValue = Math.floor(Math.random() * 100);
-        let classification = "Neutral";
-        
-        if (randomValue <= 25) {
-          classification = "Extreme Fear";
-        } else if (randomValue <= 45) {
-          classification = "Fear";
-        } else if (randomValue <= 55) {
-          classification = "Neutral";
-        } else if (randomValue <= 75) {
-          classification = "Greed";
-        } else {
-          classification = "Extreme Greed";
+  const fetchFearGreedIndex = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log("Fetching Fear & Greed Index from API...");
+      
+      // Using Alternative.me API - free and reliable Fear & Greed Index API
+      const response = await fetch(
+        "https://api.alternative.me/fng/?limit=1",
+        {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+          },
         }
-        
-        const now = new Date();
-        setFearGreedData({
-          value: randomValue,
-          value_classification: classification,
-          timestamp: now.toISOString(),
-          time_until_update: "12:00:00"
-        });
-        setError(null);
-      } catch (err) {
-        setError("Failed to fetch Fear & Greed index");
-        console.error(err);
-      } finally {
-        setLoading(false);
+      );
+      
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
-    };
-    
+      
+      const apiData: FearGreedApiResponse = await response.json();
+      console.log("API Response:", apiData);
+      
+      if (apiData.metadata?.error) {
+        throw new Error(apiData.metadata.error);
+      }
+      
+      if (!apiData.data || apiData.data.length === 0) {
+        throw new Error("No data received from API");
+      }
+      
+      const latestData = apiData.data[0];
+      const parsedData: FearGreedData = {
+        value: parseInt(latestData.value),
+        value_classification: latestData.value_classification,
+        timestamp: latestData.timestamp,
+        time_until_update: latestData.time_until_update || "24:00:00"
+      };
+      
+      setFearGreedData(parsedData);
+      setLastUpdate(new Date());
+      console.log("Fear & Greed data updated:", parsedData);
+      
+    } catch (error) {
+      console.error("Failed to fetch Fear & Greed index:", error);
+      setError(`Falha ao carregar dados: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      
+      // Fallback to mock data if API fails
+      console.log("Using fallback mock data...");
+      const mockData: FearGreedData = {
+        value: Math.floor(Math.random() * 100),
+        value_classification: ["Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"][Math.floor(Math.random() * 5)],
+        timestamp: Math.floor(Date.now() / 1000).toString(),
+        time_until_update: "24:00:00"
+      };
+      setFearGreedData(mockData);
+      setLastUpdate(new Date());
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Initial fetch and periodic updates
+  useEffect(() => {
+    // Fetch data immediately
     fetchFearGreedIndex();
+    
+    // Set up automatic updates every 30 minutes
+    const updateInterval = setInterval(() => {
+      console.log("Automatic Fear & Greed Index update triggered");
+      fetchFearGreedIndex();
+    }, 30 * 60 * 1000); // 30 minutes in milliseconds
+    
+    // Cleanup interval on component unmount
+    return () => {
+      clearInterval(updateInterval);
+    };
   }, []);
   
   const getColorByValue = (value: number): string => {
@@ -82,12 +132,24 @@ const FearGreedIndex = () => {
     return translations[classification] || classification;
   };
   
-  const getFormattedDate = (dateString: string): string => {
-    const date = new Date(dateString);
+  const getFormattedDate = (timestamp: string): string => {
+    // Convert Unix timestamp to Date
+    const date = new Date(parseInt(timestamp) * 1000);
     return date.toLocaleDateString('pt-BR', { 
       day: 'numeric',
       month: 'long', 
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getFormattedLastUpdate = (): string => {
+    if (!lastUpdate) return "Nunca";
+    
+    return lastUpdate.toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'short',
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -103,10 +165,17 @@ const FearGreedIndex = () => {
     );
   }
   
-  if (error) {
+  if (error && !fearGreedData) {
     return (
       <div className="p-4 border border-red-300 bg-red-50 text-red-700 rounded-md">
-        Erro ao carregar o índice do medo e ganância. Por favor, tente novamente mais tarde.
+        <p className="font-medium">Erro ao carregar o índice do medo e ganância</p>
+        <p className="text-sm mt-1">{error}</p>
+        <button 
+          onClick={fetchFearGreedIndex}
+          className="mt-2 text-sm underline hover:no-underline"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
@@ -124,7 +193,13 @@ const FearGreedIndex = () => {
         </div>
         
         <div className="text-sm text-muted-foreground">
-          <p>Atualizado em: {getFormattedDate(fearGreedData.timestamp)}</p>
+          <p>Dados de: {getFormattedDate(fearGreedData.timestamp)}</p>
+          <p>Última atualização: {getFormattedLastUpdate()}</p>
+          {error && (
+            <p className="text-orange-600 text-xs mt-1">
+              ⚠️ Usando dados de fallback
+            </p>
+          )}
         </div>
       </div>
       
@@ -174,6 +249,10 @@ const FearGreedIndex = () => {
           geralmente indica que investidores estão muito preocupados, o que pode ser uma oportunidade de compra. 
           Por outro lado, quando mostra "Ganância Extrema", o mercado pode estar sobrevalorizado e uma correção pode estar próxima.
         </p>
+        <div className="mt-2 text-xs text-muted-foreground">
+          <p>Próxima atualização em: {fearGreedData.time_until_update}</p>
+          <p>Atualizações automáticas a cada 30 minutos</p>
+        </div>
       </div>
     </div>
   );
