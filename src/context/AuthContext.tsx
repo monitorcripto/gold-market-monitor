@@ -4,113 +4,65 @@ import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
-interface UserProfile {
+interface AuthUser {
   id: string;
   email: string;
-  full_name?: string;
-  role: "admin" | "user";
-  subscription_tier: "free" | "basic" | "premium";
-  payment_status: "active" | "pending" | "overdue" | "cancelled";
-  subscription_start_date?: string;
-  subscription_end_date?: string;
+  name?: string;
+  subscriptionTier?: "free" | "basic" | "premium";
 }
 
 interface AuthContextType {
-  user: UserProfile | null;
+  user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      console.log('Fetching user profile for:', userId);
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        // If profile doesn't exist, create a basic user object
-        if (error.code === 'PGRST116') {
-          const { data: { user: authUser } } = await supabase.auth.getUser();
-          if (authUser) {
-            const basicProfile: UserProfile = {
-              id: authUser.id,
-              email: authUser.email || '',
-              full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name,
-              role: 'user',
-              subscription_tier: 'free',
-              payment_status: 'active'
-            };
-            setUser(basicProfile);
-            return;
-          }
-        }
-        throw error;
-      }
-      
-      console.log('Profile fetched successfully:', profile);
-      setUser(profile);
-    } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
-      setUser(null);
-    }
-  };
-
-  const refreshProfile = async () => {
-    if (session?.user) {
-      await fetchUserProfile(session.user.id);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Setting up auth state listener');
-    
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+      (event, session) => {
         setSession(session);
         
         if (session?.user) {
-          // Use setTimeout to prevent potential deadlock
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 0);
+          const authUser: AuthUser = {
+            id: session.user.id,
+            email: session.user.email || "",
+            name: session.user.user_metadata.name,
+            subscriptionTier: "free"
+          };
+          setUser(authUser);
+          setSupabaseUser(session.user);
         } else {
           setUser(null);
+          setSupabaseUser(null);
         }
-        setIsLoading(false);
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-      }
-      console.log('Initial session check:', session?.user?.email);
-      setSession(session);
-      
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        fetchUserProfile(session.user.id);
-      } else {
-        setIsLoading(false);
+        const authUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || "",
+          name: session.user.user_metadata.name,
+          subscriptionTier: "free"
+        };
+        setUser(authUser);
+        setSupabaseUser(session.user);
       }
+      setIsLoading(false);
     });
 
     return () => {
@@ -121,37 +73,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log('Attempting login for:', email);
       
+      // Simple validation
       if (!email || !password) {
         throw new Error("Email e senha são obrigatórios");
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email,
         password,
       });
       
       if (error) {
-        console.error('Login error:', error);
         throw error;
       }
       
-      console.log('Login successful:', data.user?.email);
       toast.success("Login realizado com sucesso");
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      let errorMessage = "Falha ao fazer login";
-      
-      if (error.message?.includes("Invalid login credentials")) {
-        errorMessage = "Email ou senha inválidos";
-      } else if (error.message?.includes("Email not confirmed")) {
-        errorMessage = "Por favor, confirme seu email antes de fazer login";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao fazer login");
       throw error;
     } finally {
       setIsLoading(false);
@@ -161,41 +100,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signup = async (email: string, password: string, name: string) => {
     try {
       setIsLoading(true);
-      console.log('Attempting signup for:', email);
       
+      // Simple validation
       if (!email || !password || !name) {
         throw new Error("Todos os campos são obrigatórios");
       }
       
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email,
         password,
         options: {
           data: {
-            full_name: name,
-          },
-          emailRedirectTo: `${window.location.origin}/`
+            name,
+          }
         }
       });
       
       if (error) {
-        console.error('Signup error:', error);
         throw error;
       }
       
-      console.log('Signup successful:', data.user?.email);
-      toast.success("Conta criada com sucesso! Verifique seu email para confirmar.");
-    } catch (error: any) {
-      console.error('Signup failed:', error);
-      let errorMessage = "Falha ao criar conta";
-      
-      if (error.message?.includes("User already registered")) {
-        errorMessage = "Este email já está registrado";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
+      toast.success("Conta criada com sucesso");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao criar conta");
       throw error;
     } finally {
       setIsLoading(false);
@@ -204,16 +131,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      console.log('Attempting logout');
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setUser(null);
-      setSession(null);
+      if (error) {
+        throw error;
+      }
       toast.info("Você foi desconectado");
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      toast.error(error.message || "Falha ao desconectar");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao desconectar");
+      console.error("Erro ao desconectar:", error);
     }
   };
 
@@ -221,12 +146,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider value={{ 
       user, 
       isLoading, 
-      isAuthenticated: !!user && !!session, 
-      isAdmin: user?.role === 'admin',
+      isAuthenticated: !!user, 
       login, 
       signup, 
-      logout,
-      refreshProfile
+      logout 
     }}>
       {children}
     </AuthContext.Provider>

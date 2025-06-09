@@ -9,148 +9,16 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_logs: {
-        Row: {
-          action_type: string
-          admin_id: string | null
-          created_at: string
-          details: Json | null
-          id: string
-          ip_address: unknown | null
-          target_user_id: string | null
-        }
-        Insert: {
-          action_type: string
-          admin_id?: string | null
-          created_at?: string
-          details?: Json | null
-          id?: string
-          ip_address?: unknown | null
-          target_user_id?: string | null
-        }
-        Update: {
-          action_type?: string
-          admin_id?: string | null
-          created_at?: string
-          details?: Json | null
-          id?: string
-          ip_address?: unknown | null
-          target_user_id?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          email: string
-          full_name: string | null
-          id: string
-          payment_status: Database["public"]["Enums"]["payment_status"]
-          role: Database["public"]["Enums"]["user_role"]
-          subscription_end_date: string | null
-          subscription_start_date: string | null
-          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          full_name?: string | null
-          id: string
-          payment_status?: Database["public"]["Enums"]["payment_status"]
-          role?: Database["public"]["Enums"]["user_role"]
-          subscription_end_date?: string | null
-          subscription_start_date?: string | null
-          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          full_name?: string | null
-          id?: string
-          payment_status?: Database["public"]["Enums"]["payment_status"]
-          role?: Database["public"]["Enums"]["user_role"]
-          subscription_end_date?: string | null
-          subscription_start_date?: string | null
-          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      subscription_plans: {
-        Row: {
-          alerts_limit: number | null
-          created_at: string
-          crypto_limit: number | null
-          currency: string
-          description: string | null
-          has_api_access: boolean
-          has_priority_support: boolean
-          has_technical_indicators: boolean
-          history_months: number | null
-          id: string
-          name: string
-          price: number
-          tier: Database["public"]["Enums"]["subscription_tier"]
-          update_frequency_minutes: number
-          updated_at: string
-        }
-        Insert: {
-          alerts_limit?: number | null
-          created_at?: string
-          crypto_limit?: number | null
-          currency?: string
-          description?: string | null
-          has_api_access?: boolean
-          has_priority_support?: boolean
-          has_technical_indicators?: boolean
-          history_months?: number | null
-          id?: string
-          name: string
-          price: number
-          tier: Database["public"]["Enums"]["subscription_tier"]
-          update_frequency_minutes: number
-          updated_at?: string
-        }
-        Update: {
-          alerts_limit?: number | null
-          created_at?: string
-          crypto_limit?: number | null
-          currency?: string
-          description?: string | null
-          has_api_access?: boolean
-          has_priority_support?: boolean
-          has_technical_indicators?: boolean
-          history_months?: number | null
-          id?: string
-          name?: string
-          price?: number
-          tier?: Database["public"]["Enums"]["subscription_tier"]
-          update_frequency_minutes?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      log_admin_action: {
-        Args: {
-          action_type: string
-          target_user_id?: string
-          details?: Json
-          ip_address?: unknown
-        }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
-      payment_status: "active" | "pending" | "overdue" | "cancelled"
-      subscription_tier: "free" | "basic" | "premium"
-      user_role: "admin" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -265,10 +133,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      payment_status: ["active", "pending", "overdue", "cancelled"],
-      subscription_tier: ["free", "basic", "premium"],
-      user_role: ["admin", "user"],
-    },
+    Enums: {},
   },
 } as const
