@@ -38,8 +38,8 @@ const AdminLogs = () => {
       if (logsError) throw logsError;
 
       // Then get admin and target user emails separately
-      const adminIds = [...new Set(logsData?.map(log => log.admin_id).filter(Boolean))];
-      const targetIds = [...new Set(logsData?.map(log => log.target_user_id).filter(Boolean))];
+      const adminIds = [...new Set(logsData?.map(log => log.admin_id).filter(Boolean) as string[])];
+      const targetIds = [...new Set(logsData?.map(log => log.target_user_id).filter(Boolean) as string[])];
       
       const [adminProfiles, targetProfiles] = await Promise.all([
         adminIds.length > 0 ? supabase
@@ -52,9 +52,21 @@ const AdminLogs = () => {
           .in('id', targetIds) : Promise.resolve({ data: [] })
       ]);
 
-      // Create lookup maps
-      const adminEmailMap = new Map(adminProfiles.data?.map(p => [p.id, p.email]) || []);
-      const targetEmailMap = new Map(targetProfiles.data?.map(p => [p.id, p.email]) || []);
+      // Create lookup maps with proper typing
+      const adminEmailMap = new Map<string, string>();
+      const targetEmailMap = new Map<string, string>();
+
+      adminProfiles.data?.forEach(profile => {
+        if (profile.id && profile.email) {
+          adminEmailMap.set(profile.id, profile.email);
+        }
+      });
+
+      targetProfiles.data?.forEach(profile => {
+        if (profile.id && profile.email) {
+          targetEmailMap.set(profile.id, profile.email);
+        }
+      });
 
       // Combine the data
       const formattedLogs: AdminLog[] = logsData?.map(log => ({
