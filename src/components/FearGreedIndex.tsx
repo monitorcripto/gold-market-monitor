@@ -11,7 +11,7 @@ interface FearGreedApiResponse {
     value: string;
     value_classification: string;
     timestamp: string;
-    time_until_update: string;
+    time_until_update?: string;
   }>;
   metadata: {
     error: string | null;
@@ -40,12 +40,14 @@ const FearGreedIndex = () => {
       
       // Using Alternative.me API - free and reliable Fear & Greed Index API
       const response = await fetch(
-        "https://api.alternative.me/fng/?limit=1",
+        "https://api.alternative.me/fng/?limit=1&format=json&date_format=us",
         {
           method: "GET",
           headers: {
             "Accept": "application/json",
+            "Content-Type": "application/json",
           },
+          cache: 'no-cache'
         }
       );
       
@@ -54,7 +56,7 @@ const FearGreedIndex = () => {
       }
       
       const apiData: FearGreedApiResponse = await response.json();
-      console.log("API Response:", apiData);
+      console.log("Fear & Greed API Response:", apiData);
       
       if (apiData.metadata?.error) {
         throw new Error(apiData.metadata.error);
@@ -65,8 +67,19 @@ const FearGreedIndex = () => {
       }
       
       const latestData = apiData.data[0];
+      
+      // Validate the data before processing
+      if (!latestData.value || !latestData.value_classification || !latestData.timestamp) {
+        throw new Error("Invalid data structure received from API");
+      }
+      
+      const parsedValue = parseInt(latestData.value, 10);
+      if (isNaN(parsedValue) || parsedValue < 0 || parsedValue > 100) {
+        throw new Error(`Invalid value received: ${latestData.value}`);
+      }
+      
       const parsedData: FearGreedData = {
-        value: parseInt(latestData.value),
+        value: parsedValue,
         value_classification: latestData.value_classification,
         timestamp: latestData.timestamp,
         time_until_update: latestData.time_until_update || "24:00:00"
@@ -74,21 +87,23 @@ const FearGreedIndex = () => {
       
       setFearGreedData(parsedData);
       setLastUpdate(new Date());
-      console.log("Fear & Greed data updated:", parsedData);
+      console.log("Fear & Greed data updated successfully:", parsedData);
       
     } catch (error) {
       console.error("Failed to fetch Fear & Greed index:", error);
       setError(`Falha ao carregar dados: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
       
-      // Fallback to mock data if API fails
-      console.log("Using fallback mock data...");
-      const mockData: FearGreedData = {
-        value: Math.floor(Math.random() * 100),
-        value_classification: ["Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"][Math.floor(Math.random() * 5)],
-        timestamp: Math.floor(Date.now() / 1000).toString(),
-        time_until_update: "24:00:00"
-      };
-      setFearGreedData(mockData);
+      // Only use fallback data if no data exists yet
+      if (!fearGreedData) {
+        console.log("Using fallback mock data...");
+        const mockData: FearGreedData = {
+          value: 50,
+          value_classification: "Neutral",
+          timestamp: Math.floor(Date.now() / 1000).toString(),
+          time_until_update: "24:00:00"
+        };
+        setFearGreedData(mockData);
+      }
       setLastUpdate(new Date());
     } finally {
       setLoading(false);
@@ -100,11 +115,11 @@ const FearGreedIndex = () => {
     // Fetch data immediately
     fetchFearGreedIndex();
     
-    // Set up automatic updates every 30 minutes
+    // Set up automatic updates every 10 minutes (API updates every few hours)
     const updateInterval = setInterval(() => {
       console.log("Automatic Fear & Greed Index update triggered");
       fetchFearGreedIndex();
-    }, 30 * 60 * 1000); // 30 minutes in milliseconds
+    }, 10 * 60 * 1000); // 10 minutes in milliseconds
     
     // Cleanup interval on component unmount
     return () => {
@@ -133,15 +148,22 @@ const FearGreedIndex = () => {
   };
   
   const getFormattedDate = (timestamp: string): string => {
-    // Convert Unix timestamp to Date
-    const date = new Date(parseInt(timestamp) * 1000);
-    return date.toLocaleDateString('pt-BR', { 
-      day: 'numeric',
-      month: 'long', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      // Convert Unix timestamp to Date
+      const date = new Date(parseInt(timestamp) * 1000);
+      if (isNaN(date.getTime())) {
+        throw new Error("Invalid timestamp");
+      }
+      return date.toLocaleDateString('pt-BR', { 
+        day: 'numeric',
+        month: 'long', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return "Data inválida";
+    }
   };
 
   const getFormattedLastUpdate = (): string => {
@@ -155,7 +177,7 @@ const FearGreedIndex = () => {
     });
   };
 
-  if (loading) {
+  if (loading && !fearGreedData) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-24" />
@@ -197,7 +219,7 @@ const FearGreedIndex = () => {
           <p>Última atualização: {getFormattedLastUpdate()}</p>
           {error && (
             <p className="text-orange-600 text-xs mt-1">
-              ⚠️ Usando dados de fallback
+              ⚠️ Erro na última atualização
             </p>
           )}
         </div>
@@ -251,7 +273,10 @@ const FearGreedIndex = () => {
         </p>
         <div className="mt-2 text-xs text-muted-foreground">
           <p>Próxima atualização em: {fearGreedData.time_until_update}</p>
-          <p>Atualizações automáticas a cada 30 minutos</p>
+          <p>Atualizações automáticas a cada 10 minutos</p>
+          <p className="mt-1 text-blue-600">
+            Fonte: Alternative.me Fear & Greed Index API
+          </p>
         </div>
       </div>
     </div>
