@@ -14,16 +14,21 @@ import { Label } from "@/components/ui/label";
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mode: "login" | "signup";
-  setMode: (mode: "login" | "signup") => void;
+  mode?: "login" | "signup";
+  setMode?: (mode: "login" | "signup") => void;
 }
 
-const AuthModal = ({ isOpen, onClose, mode, setMode }: AuthModalProps) => {
+const AuthModal = ({ isOpen, onClose, mode: externalMode, setMode: externalSetMode }: AuthModalProps) => {
   const { login, signup, isLoading } = useAuth();
+  const [internalMode, setInternalMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+
+  // Use external mode/setMode if provided, otherwise use internal state
+  const mode = externalMode || internalMode;
+  const setMode = externalSetMode || setInternalMode;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

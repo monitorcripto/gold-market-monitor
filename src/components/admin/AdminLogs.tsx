@@ -10,11 +10,11 @@ import { Search, Filter } from "lucide-react";
 
 interface AdminLog {
   id: string;
-  admin_id: string;
+  admin_id: string | null;
   action_type: string;
-  target_user_id?: string;
+  target_user_id?: string | null;
   details?: any;
-  ip_address?: string;
+  ip_address?: string | null;
   created_at: string;
   admin_email?: string;
   target_email?: string;
@@ -28,22 +28,40 @@ const AdminLogs = () => {
 
   const fetchLogs = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the logs
+      const { data: logsData, error: logsError } = await supabase
         .from('admin_logs')
-        .select(`
-          *,
-          admin:profiles!admin_logs_admin_id_fkey(email),
-          target:profiles!admin_logs_target_user_id_fkey(email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (logsError) throw logsError;
 
-      const formattedLogs = data?.map(log => ({
+      // Then get admin and target user emails separately
+      const adminIds = [...new Set(logsData?.map(log => log.admin_id).filter(Boolean))];
+      const targetIds = [...new Set(logsData?.map(log => log.target_user_id).filter(Boolean))];
+      
+      const [adminProfiles, targetProfiles] = await Promise.all([
+        adminIds.length > 0 ? supabase
+          .from('profiles')
+          .select('id, email')
+          .in('id', adminIds) : Promise.resolve({ data: [] }),
+        targetIds.length > 0 ? supabase
+          .from('profiles')
+          .select('id, email')
+          .in('id', targetIds) : Promise.resolve({ data: [] })
+      ]);
+
+      // Create lookup maps
+      const adminEmailMap = new Map(adminProfiles.data?.map(p => [p.id, p.email]) || []);
+      const targetEmailMap = new Map(targetProfiles.data?.map(p => [p.id, p.email]) || []);
+
+      // Combine the data
+      const formattedLogs: AdminLog[] = logsData?.map(log => ({
         ...log,
-        admin_email: log.admin?.email,
-        target_email: log.target?.email
+        ip_address: log.ip_address ? String(log.ip_address) : null,
+        admin_email: log.admin_id ? adminEmailMap.get(log.admin_id) : undefined,
+        target_email: log.target_user_id ? targetEmailMap.get(log.target_user_id) : undefined
       })) || [];
 
       setLogs(formattedLogs);
