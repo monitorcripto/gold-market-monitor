@@ -3,6 +3,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, TrendingUp, TrendingDown, Thermometer, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 // Type definition for Fear & Greed data from API
 interface FearGreedApiResponse {
@@ -27,13 +32,19 @@ interface FearGreedData {
 
 const FearGreedIndex = () => {
   const [fearGreedData, setFearGreedData] = useState<FearGreedData | null>(null);
+  const [previousValue, setPreviousValue] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
-  const fetchFearGreedIndex = async () => {
+  const fetchFearGreedIndex = async (showRefreshingState = false) => {
     try {
-      setLoading(true);
+      if (showRefreshingState) {
+        setIsRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       
       console.log("Fetching Fear & Greed Index from API...");
@@ -85,6 +96,30 @@ const FearGreedIndex = () => {
         time_until_update: latestData.time_until_update || "24:00:00"
       };
       
+      // Check for significant changes and show notifications
+      if (fearGreedData && fearGreedData.value !== parsedValue) {
+        const change = parsedValue - fearGreedData.value;
+        setPreviousValue(fearGreedData.value);
+        
+        if (Math.abs(change) >= 10) {
+          const direction = change > 0 ? "aumentou" : "diminuiu";
+          toast.info(`Índice de Medo e Ganância ${direction} significativamente`, {
+            description: `De ${fearGreedData.value} para ${parsedValue} (${change > 0 ? '+' : ''}${change} pontos)`
+          });
+        }
+        
+        // Alert for extreme levels
+        if (parsedValue <= 10) {
+          toast.error("Medo Extremo Detectado!", {
+            description: `Índice em ${parsedValue} - Possível oportunidade de compra`
+          });
+        } else if (parsedValue >= 90) {
+          toast.warning("Ganância Extrema Detectada!", {
+            description: `Índice em ${parsedValue} - Cuidado com possível correção`
+          });
+        }
+      }
+      
       setFearGreedData(parsedData);
       setLastUpdate(new Date());
       console.log("Fear & Greed data updated successfully:", parsedData);
@@ -107,6 +142,7 @@ const FearGreedIndex = () => {
       setLastUpdate(new Date());
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
   
@@ -133,6 +169,20 @@ const FearGreedIndex = () => {
     if (value <= 55) return "bg-yellow-500";
     if (value <= 75) return "bg-green-500";
     return "bg-green-700";
+  };
+
+  const getThermometerColor = (value: number): string => {
+    if (value <= 25) return "text-red-600";
+    if (value <= 45) return "text-orange-500";
+    if (value <= 55) return "text-yellow-500";
+    if (value <= 75) return "text-green-500";
+    return "text-green-700";
+  };
+
+  const getBadgeVariant = (value: number): "default" | "secondary" | "destructive" | "outline" => {
+    if (value <= 25 || value >= 75) return "destructive";
+    if (value <= 45 || value >= 65) return "secondary";
+    return "default";
   };
   
   const getClassificationTranslation = (classification: string): string => {
@@ -177,6 +227,64 @@ const FearGreedIndex = () => {
     });
   };
 
+  const getTrendIcon = () => {
+    if (!previousValue || !fearGreedData) return null;
+    
+    const change = fearGreedData.value - previousValue;
+    if (change > 0) {
+      return <TrendingUp className="h-4 w-4 text-green-600" />;
+    } else if (change < 0) {
+      return <TrendingDown className="h-4 w-4 text-red-600" />;
+    }
+    return null;
+  };
+
+  const getMarketSentiment = (value: number): { text: string; icon: React.ReactNode; description: string } => {
+    if (value <= 10) {
+      return {
+        text: "Pânico Total",
+        icon: <AlertTriangle className="h-5 w-5 text-red-600" />,
+        description: "Mercado em pânico extremo - Oportunidades históricas podem surgir"
+      };
+    } else if (value <= 25) {
+      return {
+        text: "Medo Extremo",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+        description: "Investidores muito pessimistas - Possível momento de acumulação"
+      };
+    } else if (value <= 45) {
+      return {
+        text: "Medo",
+        icon: <TrendingDown className="h-5 w-5 text-orange-500" />,
+        description: "Cautela no mercado - Boas oportunidades podem aparecer"
+      };
+    } else if (value <= 55) {
+      return {
+        text: "Neutro",
+        icon: <Thermometer className="h-5 w-5 text-yellow-500" />,
+        description: "Mercado equilibrado - Aguarde sinais mais claros"
+      };
+    } else if (value <= 75) {
+      return {
+        text: "Ganância",
+        icon: <TrendingUp className="h-5 w-5 text-green-500" />,
+        description: "Otimismo crescente - Monitore níveis de resistência"
+      };
+    } else if (value <= 90) {
+      return {
+        text: "Ganância Extrema",
+        icon: <TrendingUp className="h-5 w-5 text-green-600" />,
+        description: "Euforia no mercado - Cuidado com possíveis correções"
+      };
+    } else {
+      return {
+        text: "Euforia Total",
+        icon: <AlertTriangle className="h-5 w-5 text-red-600" />,
+        description: "Mercado superaquecido - Alto risco de correção significativa"
+      };
+    }
+  };
+
   if (loading && !fearGreedData) {
     return (
       <div className="space-y-4">
@@ -193,7 +301,7 @@ const FearGreedIndex = () => {
         <p className="font-medium">Erro ao carregar o índice do medo e ganância</p>
         <p className="text-sm mt-1">{error}</p>
         <button 
-          onClick={fetchFearGreedIndex}
+          onClick={() => fetchFearGreedIndex()}
           className="mt-2 text-sm underline hover:no-underline"
         >
           Tentar novamente
@@ -204,40 +312,82 @@ const FearGreedIndex = () => {
   
   if (!fearGreedData) return null;
 
+  const sentiment = getMarketSentiment(fearGreedData.value);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div>
-          <h3 className="text-4xl font-bold">{fearGreedData.value}</h3>
-          <p className="text-lg font-medium">
-            {getClassificationTranslation(fearGreedData.value_classification)}
-          </p>
+      {/* Header with value and controls */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+        <div className="flex items-center gap-4">
+          <div className="text-center">
+            <div className="flex items-center gap-2 mb-1">
+              <Thermometer className={`h-8 w-8 ${getThermometerColor(fearGreedData.value)}`} />
+              <h3 className="text-4xl font-bold">{fearGreedData.value}</h3>
+              {getTrendIcon()}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={getBadgeVariant(fearGreedData.value)}>
+                {getClassificationTranslation(fearGreedData.value_classification)}
+              </Badge>
+            </div>
+          </div>
         </div>
         
-        <div className="text-sm text-muted-foreground">
-          <p>Dados de: {getFormattedDate(fearGreedData.timestamp)}</p>
-          <p>Última atualização: {getFormattedLastUpdate()}</p>
-          {error && (
-            <p className="text-orange-600 text-xs mt-1">
-              ⚠️ Erro na última atualização
-            </p>
-          )}
+        <div className="flex flex-col items-end gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => fetchFearGreedIndex(true)}
+            disabled={isRefreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? "Atualizando..." : "Atualizar"}
+          </Button>
+          <div className="text-sm text-muted-foreground text-right">
+            <p>Dados de: {getFormattedDate(fearGreedData.timestamp)}</p>
+            <p>Última atualização: {getFormattedLastUpdate()}</p>
+            {error && (
+              <p className="text-orange-600 text-xs mt-1">
+                ⚠️ Erro na última atualização
+              </p>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Sentiment Alert */}
+      {(fearGreedData.value <= 25 || fearGreedData.value >= 75) && (
+        <Alert className={fearGreedData.value <= 25 ? "border-red-200 bg-red-50" : "border-orange-200 bg-orange-50"}>
+          <div className="flex items-center gap-2">
+            {sentiment.icon}
+            <AlertDescription>
+              <span className="font-semibold">{sentiment.text}:</span> {sentiment.description}
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
       
+      {/* Enhanced thermometer visualization */}
       <div className="relative pt-6 pb-12">
         <div className="relative">
           <Progress 
             value={fearGreedData.value} 
-            className="h-4"
+            className="h-6 bg-muted"
           />
           <div 
-            className={`absolute top-0 left-0 h-4 rounded-full transition-all ${getColorByValue(fearGreedData.value)}`}
+            className={`absolute top-0 left-0 h-6 rounded-full transition-all duration-500 ${getColorByValue(fearGreedData.value)}`}
             style={{ width: `${fearGreedData.value}%` }}
+          />
+          
+          {/* Value indicator */}
+          <div 
+            className="absolute top-0 w-1 h-6 bg-foreground/80 transition-all duration-500"
+            style={{ left: `${fearGreedData.value}%`, transform: 'translateX(-50%)' }}
           />
         </div>
         
-        <div className="flex justify-between text-xs mt-1 text-muted-foreground">
+        <div className="flex justify-between text-xs mt-2 text-muted-foreground">
           <div className="text-red-600 font-medium">Medo Extremo</div>
           <div>Medo</div>
           <div>Neutro</div>
@@ -245,38 +395,42 @@ const FearGreedIndex = () => {
           <div className="text-green-700 font-medium">Ganância Extrema</div>
         </div>
         
+        {/* Scale marks */}
         <div className="absolute -bottom-1 left-0 w-full flex justify-between px-0">
-          <div className="w-0">
-            <div className="h-3 w-0.5 bg-muted-foreground" />
-          </div>
-          <div className="w-0">
-            <div className="h-3 w-0.5 bg-muted-foreground" />
-          </div>
-          <div className="w-0">
-            <div className="h-3 w-0.5 bg-muted-foreground" />
-          </div>
-          <div className="w-0">
-            <div className="h-3 w-0.5 bg-muted-foreground" />
-          </div>
-          <div className="w-0">
-            <div className="h-3 w-0.5 bg-muted-foreground" />
-          </div>
+          {[0, 25, 50, 75, 100].map((mark) => (
+            <div key={mark} className="flex flex-col items-center">
+              <div className="h-3 w-0.5 bg-muted-foreground" />
+              <span className="text-xs text-muted-foreground mt-1">{mark}</span>
+            </div>
+          ))}
         </div>
       </div>
       
+      {/* Information card */}
       <div className="bg-muted p-4 rounded-md">
-        <h4 className="font-medium mb-2">O que é o Índice do Medo e Ganância?</h4>
-        <p className="text-sm text-muted-foreground">
-          Este indicador analisa o sentimento atual do mercado de criptomoedas. Quando o índice mostra "Medo Extremo", 
-          geralmente indica que investidores estão muito preocupados, o que pode ser uma oportunidade de compra. 
-          Por outro lado, quando mostra "Ganância Extrema", o mercado pode estar sobrevalorizado e uma correção pode estar próxima.
-        </p>
-        <div className="mt-2 text-xs text-muted-foreground">
-          <p>Próxima atualização em: {fearGreedData.time_until_update}</p>
-          <p>Atualizações automáticas a cada 10 minutos</p>
-          <p className="mt-1 text-blue-600">
-            Fonte: Alternative.me Fear & Greed Index API
+        <div className="flex items-start gap-3 mb-3">
+          {sentiment.icon}
+          <div>
+            <h4 className="font-medium">{sentiment.text}</h4>
+            <p className="text-sm text-muted-foreground mt-1">{sentiment.description}</p>
+          </div>
+        </div>
+        
+        <div className="border-t border-border pt-3 mt-3">
+          <h4 className="font-medium mb-2">O que é o Índice do Medo e Ganância?</h4>
+          <p className="text-sm text-muted-foreground">
+            Este indicador analisa o sentimento atual do mercado de criptomoedas. Quando o índice mostra "Medo Extremo", 
+            geralmente indica que investidores estão muito preocupados, o que pode ser uma oportunidade de compra. 
+            Por outro lado, quando mostra "Ganância Extrema", o mercado pode estar sobrevalorizado e uma correção pode estar próxima.
           </p>
+          <div className="mt-3 text-xs text-muted-foreground space-y-1">
+            <p>• Próxima atualização em: {fearGreedData.time_until_update}</p>
+            <p>• Atualizações automáticas a cada 10 minutos</p>
+            <p>• Fonte: Alternative.me Fear & Greed Index API</p>
+            {previousValue && (
+              <p>• Variação desde a última atualização: {fearGreedData.value - previousValue > 0 ? '+' : ''}{fearGreedData.value - previousValue} pontos</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
