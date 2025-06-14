@@ -1,4 +1,3 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +13,7 @@ import TrendIndicator from "@/components/TrendIndicator";
 import MarketStat from "./MarketStat";
 import { CryptoData } from "@/context/CryptoContext";
 import { formatCurrency } from "@/lib/utils";
+import RiskWarning from "@/components/RiskWarning";
 
 interface AnalysisTabsProps {
   selectedCrypto: CryptoData | null;
@@ -95,11 +95,15 @@ const AnalysisTabs = ({ selectedCrypto, isLoading }: AnalysisTabsProps) => {
               </CardContent>
             </Card>
           </div>
+          <RiskWarning />
         </TabsContent>
 
         <TabsContent value="technical" className="space-y-6">
           {selectedCrypto ? (
-            <TechnicalIndicators crypto={selectedCrypto} />
+            <>
+              <TechnicalIndicators crypto={selectedCrypto} />
+              <RiskWarning />
+            </>
           ) : (
             <Card>
               <CardContent className="text-center py-8">
@@ -111,7 +115,10 @@ const AnalysisTabs = ({ selectedCrypto, isLoading }: AnalysisTabsProps) => {
 
         <TabsContent value="signals" className="space-y-6">
           {selectedCrypto ? (
-            <TradingSignals crypto={selectedCrypto} />
+            <>
+              <TradingSignals crypto={selectedCrypto} />
+              <RiskWarning />
+            </>
           ) : (
             <Card>
               <CardContent className="text-center py-8">
@@ -123,7 +130,10 @@ const AnalysisTabs = ({ selectedCrypto, isLoading }: AnalysisTabsProps) => {
 
         <TabsContent value="risk" className="space-y-6">
           {selectedCrypto ? (
-            <RiskAnalysis crypto={selectedCrypto} />
+            <>
+              <RiskAnalysis crypto={selectedCrypto} />
+              <RiskWarning />
+            </>
           ) : (
             <Card>
               <CardContent className="text-center py-8">
@@ -135,7 +145,10 @@ const AnalysisTabs = ({ selectedCrypto, isLoading }: AnalysisTabsProps) => {
 
         <TabsContent value="alerts" className="space-y-6">
           {selectedCrypto ? (
-            <SmartAlerts crypto={selectedCrypto} />
+            <>
+              <SmartAlerts crypto={selectedCrypto} />
+              <RiskWarning />
+            </>
           ) : (
             <Card>
               <CardContent className="text-center py-8">

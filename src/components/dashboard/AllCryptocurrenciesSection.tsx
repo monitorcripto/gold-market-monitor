@@ -1,9 +1,9 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import TrendIndicator from "@/components/TrendIndicator";
 import { CryptoData } from "@/context/CryptoContext";
 import { formatCurrency } from "@/lib/utils";
+import RiskWarning from "@/components/RiskWarning";
 
 interface AllCryptocurrenciesSectionProps {
   cryptoData: CryptoData[];
@@ -97,9 +97,10 @@ const AllCryptocurrenciesSection = ({
         
         <TabsContent value="all" className="space-y-4">
           <CryptoTable data={allCryptos} />
+          <RiskWarning />
         </TabsContent>
         
-        <TabsContent value="gainers">
+        <TabsContent value="gainers" className="space-y-4">
           <CryptoTable 
             data={cryptoData
               .filter(crypto => crypto.price_change_percentage_24h > 0)
@@ -107,9 +108,10 @@ const AllCryptocurrenciesSection = ({
               .slice(0, 10)
             }
           />
+          <RiskWarning />
         </TabsContent>
         
-        <TabsContent value="losers">
+        <TabsContent value="losers" className="space-y-4">
           <CryptoTable 
             data={cryptoData
               .filter(crypto => crypto.price_change_percentage_24h < 0)
@@ -117,6 +119,7 @@ const AllCryptocurrenciesSection = ({
               .slice(0, 10)
             }
           />
+          <RiskWarning />
         </TabsContent>
       </Tabs>
     </section>

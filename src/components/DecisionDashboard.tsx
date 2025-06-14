@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brain } from "lucide-react";
 import { CryptoData } from "@/context/CryptoContext";
@@ -7,6 +6,7 @@ import DecisionScore from "./decision/DecisionScore";
 import DecisionMetrics from "./decision/DecisionMetrics";
 import DecisionReasoning from "./decision/DecisionReasoning";
 import HistoricalPerformance from "./decision/HistoricalPerformance";
+import RiskWarning from "./RiskWarning";
 
 interface DecisionDashboardProps {
   crypto: CryptoData;
@@ -29,16 +29,7 @@ const DecisionDashboard = ({ crypto }: DecisionDashboardProps) => {
         <DecisionReasoning decision={decision} />
         <HistoricalPerformance />
 
-        {/* Risk Warning */}
-        <div className="p-4 rounded-lg bg-orange-50 border border-orange-200">
-          <div className="text-sm text-orange-800">
-            <div className="font-semibold mb-1">⚠️ Aviso de Risco</div>
-            <div>
-              Esta é uma análise automatizada baseada em indicadores técnicos e não constitui aconselhamento financeiro. 
-              Sempre faça sua própria pesquisa e considere consultar um consultor financeiro qualificado.
-            </div>
-          </div>
-        </div>
+        <RiskWarning />
       </CardContent>
     </Card>
   );
