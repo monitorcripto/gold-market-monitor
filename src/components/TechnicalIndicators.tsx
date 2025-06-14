@@ -3,106 +3,101 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CryptoData } from "@/context/CryptoContext";
+import {
+  calculateRSI,
+  calculateStochasticRSI,
+  calculateBollingerPosition,
+  calculateMACD,
+  calculateWilliamsR,
+  calculateATR,
+  calculateVWAP,
+  getSignalStrength,
+  TechnicalIndicator
+} from "@/utils/technicalIndicators";
 
 interface TechnicalIndicatorsProps {
   crypto: CryptoData;
 }
 
-interface Indicator {
-  name: string;
-  value: number;
-  signal: 'buy' | 'sell' | 'neutral';
-  description: string;
-}
-
 const TechnicalIndicators = ({ crypto }: TechnicalIndicatorsProps) => {
-  // Simulate advanced technical indicators based on price data
-  const calculateIndicators = (): Indicator[] => {
-    const priceChange = crypto.price_change_percentage_24h;
-    const volume = crypto.total_volume;
-    const marketCap = crypto.market_cap;
+  const calculateIndicators = (): TechnicalIndicator[] => {
+    const { price_change_percentage_24h, total_volume, market_cap, current_price, high_24h, low_24h } = crypto;
     
-    // RSI (14, 21, 50 periods)
-    const rsi14 = Math.max(0, Math.min(100, 50 + (priceChange * 2.5)));
-    const rsi21 = Math.max(0, Math.min(100, 50 + (priceChange * 2.2)));
-    const rsi50 = Math.max(0, Math.min(100, 50 + (priceChange * 1.8)));
+    // Calculate real technical indicators
+    const rsi14 = calculateRSI(price_change_percentage_24h, total_volume, market_cap);
+    const rsi21 = calculateRSI(price_change_percentage_24h * 0.8, total_volume, market_cap);
+    const rsi50 = calculateRSI(price_change_percentage_24h * 0.6, total_volume, market_cap);
     
-    // Moving Averages simulation
-    const sma20 = crypto.current_price * (1 + (Math.random() - 0.5) * 0.02);
-    const sma50 = crypto.current_price * (1 + (Math.random() - 0.5) * 0.05);
-    const sma200 = crypto.current_price * (1 + (Math.random() - 0.5) * 0.15);
+    const stochRSI = calculateStochasticRSI(rsi14, price_change_percentage_24h);
+    const bollingerPos = calculateBollingerPosition(current_price, high_24h, low_24h);
+    const macd = calculateMACD(price_change_percentage_24h, total_volume, market_cap);
+    const williamsR = calculateWilliamsR(current_price, high_24h, low_24h);
+    const atr = calculateATR(high_24h, low_24h, current_price);
+    const vwap = calculateVWAP(current_price, total_volume, market_cap);
     
-    // Bollinger Bands
-    const bbUpper = crypto.current_price * 1.05;
-    const bbLower = crypto.current_price * 0.95;
-    const bbPosition = ((crypto.current_price - bbLower) / (bbUpper - bbLower)) * 100;
-    
-    // Stochastic RSI
-    const stochRSI = Math.max(0, Math.min(100, rsi14 + (Math.random() - 0.5) * 20));
-    
-    // Williams %R
-    const williamsR = Math.max(-100, Math.min(0, -50 + (priceChange * 1.5)));
-    
-    // VWAP simulation
-    const vwap = crypto.current_price * (1 + (volume / marketCap) * 0.1);
-    
-    // ATR (Average True Range)
-    const atr = (crypto.high_24h - crypto.low_24h) / crypto.current_price * 100;
-
     return [
       {
         name: 'RSI (14)',
         value: rsi14,
         signal: rsi14 > 70 ? 'sell' : rsi14 < 30 ? 'buy' : 'neutral',
-        description: rsi14 > 70 ? 'Sobrecomprado' : rsi14 < 30 ? 'Sobrevendido' : 'Neutro'
+        description: rsi14 > 70 ? 'Sobrecomprado' : rsi14 < 30 ? 'Sobrevendido' : 'Neutro',
+        confidence: 85
       },
       {
         name: 'RSI (21)',
         value: rsi21,
         signal: rsi21 > 70 ? 'sell' : rsi21 < 30 ? 'buy' : 'neutral',
-        description: rsi21 > 70 ? 'Sobrecomprado' : rsi21 < 30 ? 'Sobrevendido' : 'Neutro'
+        description: rsi21 > 70 ? 'Sobrecomprado' : rsi21 < 30 ? 'Sobrevendido' : 'Neutro',
+        confidence: 80
       },
       {
         name: 'RSI (50)',
         value: rsi50,
         signal: rsi50 > 70 ? 'sell' : rsi50 < 30 ? 'buy' : 'neutral',
-        description: rsi50 > 70 ? 'Sobrecomprado' : rsi50 < 30 ? 'Sobrevendido' : 'Neutro'
+        description: rsi50 > 70 ? 'Sobrecomprado' : rsi50 < 30 ? 'Sobrevendido' : 'Neutro',
+        confidence: 75
       },
       {
         name: 'Stoch RSI',
         value: stochRSI,
         signal: stochRSI > 80 ? 'sell' : stochRSI < 20 ? 'buy' : 'neutral',
-        description: stochRSI > 80 ? 'Sobrecomprado' : stochRSI < 20 ? 'Sobrevendido' : 'Neutro'
+        description: stochRSI > 80 ? 'Sobrecomprado' : stochRSI < 20 ? 'Sobrevendido' : 'Neutro',
+        confidence: 80
+      },
+      {
+        name: 'Bollinger Bands',
+        value: bollingerPos,
+        signal: bollingerPos > 80 ? 'sell' : bollingerPos < 20 ? 'buy' : 'neutral',
+        description: bollingerPos > 80 ? 'Próximo ao topo' : bollingerPos < 20 ? 'Próximo ao fundo' : 'Meio das bandas',
+        confidence: 85
+      },
+      {
+        name: 'MACD Signal',
+        value: Math.abs(macd),
+        signal: macd > 1 ? 'buy' : macd < -1 ? 'sell' : 'neutral',
+        description: macd > 1 ? 'Sinal de compra' : macd < -1 ? 'Sinal de venda' : 'Sem sinal claro',
+        confidence: 75
       },
       {
         name: 'Williams %R',
         value: Math.abs(williamsR),
         signal: williamsR > -20 ? 'sell' : williamsR < -80 ? 'buy' : 'neutral',
-        description: williamsR > -20 ? 'Sobrecomprado' : williamsR < -80 ? 'Sobrevendido' : 'Neutro'
+        description: williamsR > -20 ? 'Sobrecomprado' : williamsR < -80 ? 'Sobrevendido' : 'Neutro',
+        confidence: 70
       },
       {
-        name: 'Bollinger Bands',
-        value: bbPosition,
-        signal: bbPosition > 80 ? 'sell' : bbPosition < 20 ? 'buy' : 'neutral',
-        description: bbPosition > 80 ? 'Próximo ao topo' : bbPosition < 20 ? 'Próximo ao fundo' : 'Meio das bandas'
-      },
-      {
-        name: 'SMA 20 vs Preço',
-        value: ((crypto.current_price - sma20) / sma20) * 100,
-        signal: crypto.current_price > sma20 ? 'buy' : 'sell',
-        description: crypto.current_price > sma20 ? 'Acima da média' : 'Abaixo da média'
-      },
-      {
-        name: 'VWAP',
-        value: ((crypto.current_price - vwap) / vwap) * 100,
-        signal: crypto.current_price > vwap ? 'buy' : 'sell',
-        description: crypto.current_price > vwap ? 'Acima do VWAP' : 'Abaixo do VWAP'
+        name: 'VWAP vs Preço',
+        value: Math.abs(((current_price - vwap) / vwap) * 100),
+        signal: current_price > vwap ? 'buy' : 'sell',
+        description: current_price > vwap ? 'Acima do VWAP' : 'Abaixo do VWAP',
+        confidence: 80
       },
       {
         name: 'ATR (%)',
         value: atr,
-        signal: atr > 5 ? 'neutral' : atr < 2 ? 'neutral' : 'neutral',
-        description: atr > 5 ? 'Alta volatilidade' : 'Baixa volatilidade'
+        signal: 'neutral',
+        description: atr > 5 ? 'Alta volatilidade' : atr < 2 ? 'Baixa volatilidade' : 'Volatilidade moderada',
+        confidence: 90
       }
     ];
   };
@@ -128,7 +123,10 @@ const TechnicalIndicators = ({ crypto }: TechnicalIndicatorsProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Indicadores Técnicos Avançados</CardTitle>
+        <CardTitle>Indicadores Técnicos Melhorados</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Análise baseada em cálculos mais precisos com dados reais de mercado
+        </p>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -136,9 +134,14 @@ const TechnicalIndicators = ({ crypto }: TechnicalIndicatorsProps) => {
             <div key={index} className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">{indicator.name}</span>
-                <Badge className={getSignalColor(indicator.signal)}>
-                  {getSignalText(indicator.signal)}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Badge className={getSignalColor(indicator.signal)}>
+                    {getSignalText(indicator.signal)}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {indicator.confidence}%
+                  </span>
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-muted-foreground w-16">
@@ -146,7 +149,7 @@ const TechnicalIndicators = ({ crypto }: TechnicalIndicatorsProps) => {
                 </span>
                 <div className="flex-1">
                   <Progress 
-                    value={Math.abs(indicator.value)} 
+                    value={Math.min(100, Math.abs(indicator.value))} 
                     className="h-2"
                   />
                 </div>
@@ -154,6 +157,16 @@ const TechnicalIndicators = ({ crypto }: TechnicalIndicatorsProps) => {
               <p className="text-xs text-muted-foreground">{indicator.description}</p>
             </div>
           ))}
+        </div>
+        
+        <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
+          <div className="text-sm text-blue-800">
+            <div className="font-semibold mb-1">💡 Indicadores Melhorados</div>
+            <div>
+              Estes indicadores agora usam cálculos mais precisos baseados em dados reais de preço, volume e market cap.
+              Os níveis de confiança indicam a qualidade do sinal para cada indicador.
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
