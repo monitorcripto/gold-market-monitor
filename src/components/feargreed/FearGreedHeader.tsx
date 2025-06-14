@@ -66,8 +66,8 @@ export const FearGreedHeader = ({
           <p>Dados de: {getFormattedDate(fearGreedData.timestamp)}</p>
           <p>Última atualização: {getFormattedLastUpdate()}</p>
           {error && (
-            <p className="text-orange-600 text-xs mt-1">
-              ⚠️ {error.includes('Falha ao carregar') ? 'Erro na conexão com a API' : 'Erro na última atualização'}
+            <p className="text-amber-600 text-xs mt-1 flex items-center gap-1">
+              ⚠️ {error}
             </p>
           )}
         </div>
