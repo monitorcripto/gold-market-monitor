@@ -67,7 +67,7 @@ export const FearGreedHeader = ({
           <p>Última atualização: {getFormattedLastUpdate()}</p>
           {error && (
             <p className="text-orange-600 text-xs mt-1">
-              ⚠️ Erro na última atualização
+              ⚠️ {error.includes('Falha ao carregar') ? 'Erro na conexão com a API' : 'Erro na última atualização'}
             </p>
           )}
         </div>

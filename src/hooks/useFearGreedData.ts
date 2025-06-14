@@ -18,6 +18,8 @@ export const useFearGreedData = () => {
       } else {
         setLoading(true);
       }
+      
+      // Clear any previous error
       setError(null);
       
       console.log("Fetching Fear & Greed Index from API...");
@@ -92,12 +94,15 @@ export const useFearGreedData = () => {
       
       setFearGreedData(parsedData);
       setLastUpdate(new Date());
+      setError(null); // Clear error on success
       console.log("Fear & Greed data updated successfully:", parsedData);
       
     } catch (error) {
       console.error("Failed to fetch Fear & Greed index:", error);
-      setError(`Falha ao carregar dados: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      setError(`Falha ao carregar dados: ${errorMessage}`);
       
+      // Only use fallback data if we don't have any data yet
       if (!fearGreedData) {
         console.log("Using fallback mock data...");
         const mockData: FearGreedData = {
@@ -108,6 +113,7 @@ export const useFearGreedData = () => {
         };
         setFearGreedData(mockData);
       }
+      
       setLastUpdate(new Date());
     } finally {
       setLoading(false);
@@ -118,6 +124,7 @@ export const useFearGreedData = () => {
   useEffect(() => {
     fetchFearGreedIndex();
     
+    // Set up interval for automatic updates every 10 minutes
     const updateInterval = setInterval(() => {
       console.log("Automatic Fear & Greed Index update triggered");
       fetchFearGreedIndex();
