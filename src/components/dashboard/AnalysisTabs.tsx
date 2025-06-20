@@ -58,26 +58,32 @@ const AnalysisTabs = ({ selectedCrypto, isLoading }: AnalysisTabsProps) => {
                     <MarketStat 
                       label="Preço Atual" 
                       value={formatCurrency(selectedCrypto.current_price)} 
+                      tooltip="O preço atual da criptomoeda no mercado em tempo real"
                     />
                     <MarketStat 
                       label="Capitalização de Mercado" 
                       value={formatCurrency(selectedCrypto.market_cap)} 
+                      tooltip="Valor total de todas as moedas em circulação (preço × quantidade total de moedas)"
                     />
                     <MarketStat 
                       label="Ranking" 
                       value={`#${selectedCrypto.market_cap_rank}`} 
+                      tooltip="Posição da criptomoeda no ranking por capitalização de mercado"
                     />
                     <MarketStat 
                       label="Volume 24h" 
                       value={formatCurrency(selectedCrypto.total_volume)} 
+                      tooltip="Valor total negociado nas últimas 24 horas em todas as exchanges"
                     />
                     <MarketStat 
                       label="Máxima 24h" 
                       value={formatCurrency(selectedCrypto.high_24h)} 
+                      tooltip="Maior preço atingido nas últimas 24 horas"
                     />
                     <MarketStat 
                       label="Mínima 24h" 
                       value={formatCurrency(selectedCrypto.low_24h)} 
+                      tooltip="Menor preço atingido nas últimas 24 horas"
                     />
                     <Separator className="my-2" />
                     <MarketStat 
@@ -88,7 +94,8 @@ const AnalysisTabs = ({ selectedCrypto, isLoading }: AnalysisTabsProps) => {
                           asPercentage 
                           showIcon 
                         />
-                      } 
+                      }
+                      tooltip="Percentual de variação do preço nas últimas 24 horas"
                     />
                   </div>
                 )}

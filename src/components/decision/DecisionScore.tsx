@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { Decision } from "@/utils/decisionUtils";
+import InfoTooltip from "@/components/InfoTooltip";
 
 interface DecisionScoreProps {
   decision: Decision;
@@ -51,8 +52,9 @@ const DecisionScore = ({ decision }: DecisionScoreProps) => {
   return (
     <div className="text-center p-6 rounded-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
       <div className="space-y-4">
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center space-x-2">
           {actionDetails.icon}
+          <InfoTooltip content="Score de decisão calculado com base em múltiplos indicadores técnicos, volume, momentum e análise de risco" />
         </div>
         <div>
           <div className="text-4xl font-bold mb-2">{decision.score}/100</div>
