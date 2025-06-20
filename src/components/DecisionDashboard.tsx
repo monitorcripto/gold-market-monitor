@@ -8,6 +8,7 @@ import DecisionMetrics from "./decision/DecisionMetrics";
 import DecisionReasoning from "./decision/DecisionReasoning";
 import HistoricalPerformance from "./decision/HistoricalPerformance";
 import IntelligentDecisionPanel from "./decision/IntelligentDecisionPanel";
+import TechnicalLevelsPanel from "./decision/TechnicalLevelsPanel";
 import RiskWarning from "./RiskWarning";
 
 interface DecisionDashboardProps {
@@ -21,6 +22,9 @@ const DecisionDashboard = ({ crypto }: DecisionDashboardProps) => {
     <div className="space-y-6">
       {/* Painel de Decisão Inteligente - Novo componente principal */}
       <IntelligentDecisionPanel crypto={crypto} decision={decision} />
+
+      {/* Painel de Níveis Técnicos e Projeções */}
+      <TechnicalLevelsPanel crypto={crypto} />
 
       {/* Dashboard de Decisão Original - Melhorado */}
       <Card>
