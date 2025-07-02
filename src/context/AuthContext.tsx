@@ -9,6 +9,7 @@ interface AuthUser {
   email: string;
   name?: string;
   subscriptionTier?: "free" | "basic" | "premium";
+  isHardcodedAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -21,6 +22,19 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Credenciais do admin hardcoded
+const HARDCODED_ADMIN = {
+  email: "admin@monitorcripto.com",
+  password: "admin123",
+  user: {
+    id: "hardcoded-admin-id",
+    email: "admin@monitorcripto.com",
+    name: "Administrador",
+    subscriptionTier: "premium" as const,
+    isHardcodedAdmin: true
+  }
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -78,6 +92,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!email || !password) {
         throw new Error("Email e senha são obrigatórios");
       }
+
+      // Verificar se é o admin hardcoded
+      if (email === HARDCODED_ADMIN.email && password === HARDCODED_ADMIN.password) {
+        setUser(HARDCODED_ADMIN.user);
+        toast.success("Login de administrador realizado com sucesso");
+        return;
+      }
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -131,6 +152,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
+      // Se for admin hardcoded, apenas limpar o estado local
+      if (user?.isHardcodedAdmin) {
+        setUser(null);
+        toast.info("Administrador desconectado");
+        return;
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;

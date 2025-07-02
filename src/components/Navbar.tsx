@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, Bell, User } from "lucide-react";
+import { Menu, Bell, User, Shield } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,13 +73,25 @@ const Navbar = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="rounded-full">
-                      <User className="h-4 w-4" />
+                      {user?.isHardcodedAdmin ? (
+                        <Shield className="h-4 w-4 text-crypto-gold-500" />
+                      ) : (
+                        <User className="h-4 w-4" />
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <div className="p-2 text-sm">
-                      <div className="font-medium">{user?.name || "Usuário"}</div>
+                      <div className="font-medium flex items-center space-x-2">
+                        <span>{user?.name || "Usuário"}</span>
+                        {user?.isHardcodedAdmin && (
+                          <Shield className="h-3 w-3 text-crypto-gold-500" />
+                        )}
+                      </div>
                       <div className="text-muted-foreground">{user?.email}</div>
+                      {user?.isHardcodedAdmin && (
+                        <div className="text-xs text-crypto-gold-500 font-medium">Administrador</div>
+                      )}
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
