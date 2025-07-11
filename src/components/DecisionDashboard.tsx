@@ -13,6 +13,7 @@ import TechnicalLevelsPanel from "./decision/TechnicalLevelsPanel";
 import SimplifiedDecisionGuide from "./decision/SimplifiedDecisionGuide";
 import BeginnerModeToggle from "./decision/BeginnerModeToggle";
 import MarketFactsList from "./decision/MarketFactsList";
+import ConsolidatedDecisionPanel from "./decision/ConsolidatedDecisionPanel";
 import RiskWarning from "./RiskWarning";
 
 interface DecisionDashboardProps {
@@ -30,6 +31,9 @@ const DecisionDashboard = ({ crypto }: DecisionDashboardProps) => {
         isBeginnerMode={isBeginnerMode}
         onToggle={setIsBeginnerMode}
       />
+
+      {/* Painel Consolidador - Sempre visível */}
+      <ConsolidatedDecisionPanel crypto={crypto} decision={decision} />
 
       {isBeginnerMode ? (
         /* Modo Iniciante - Interface Simplificada */
