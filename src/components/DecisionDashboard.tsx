@@ -12,6 +12,7 @@ import IntelligentDecisionPanel from "./decision/IntelligentDecisionPanel";
 import TechnicalLevelsPanel from "./decision/TechnicalLevelsPanel";
 import SimplifiedDecisionGuide from "./decision/SimplifiedDecisionGuide";
 import BeginnerModeToggle from "./decision/BeginnerModeToggle";
+import MarketFactsList from "./decision/MarketFactsList";
 import RiskWarning from "./RiskWarning";
 
 interface DecisionDashboardProps {
@@ -32,12 +33,18 @@ const DecisionDashboard = ({ crypto }: DecisionDashboardProps) => {
 
       {isBeginnerMode ? (
         /* Modo Iniciante - Interface Simplificada */
-        <SimplifiedDecisionGuide crypto={crypto} decision={decision} />
+        <>
+          <SimplifiedDecisionGuide crypto={crypto} decision={decision} />
+          <MarketFactsList crypto={crypto} decision={decision} />
+        </>
       ) : (
         /* Modo Técnico - Interface Completa */
         <>
           {/* Painel de Decisão Inteligente */}
           <IntelligentDecisionPanel crypto={crypto} decision={decision} />
+
+          {/* Lista de Fatos do Mercado */}
+          <MarketFactsList crypto={crypto} decision={decision} />
 
           {/* Painel de Níveis Técnicos e Projeções */}
           <TechnicalLevelsPanel crypto={crypto} />
